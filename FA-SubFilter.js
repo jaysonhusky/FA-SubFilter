@@ -1,27 +1,54 @@
 // ==UserScript==
-// @name         SubFilter
-// @namespace    FurAffinity.net
-// @version      0.2.5
+// @name         SubFilter (Beta Update)
+// @namespace    FurAffinity
+// @version      2.0
 // @description  Enable/Disable YCH and Stream notifications
 // @author       JaysonHusky
-// @match        *://www.furaffinity.net/*
-// @exclude      *://www.furaffinity.net/login/
-// @exclude      *://www.furaffinity.net/logout/
-// @exclude      *://www.furaffinity.net/controls/submissions/
-// @exclude      *://www.furaffinity.net/controls/settings/
-// @grant       GM_getValue
-// @grant       GM_setValue
-// @require      http://code.jquery.com/jquery-latest.js
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @match        *://www.furaffinity.net/msg/submissions*
+// @match        *://www.furaffinity.net/gallery/*/
+// @match        *://www.furaffinity.net/favorites/*/
+// @match        *://www.furaffinity.net/browse*
+// @match        *://www.furaffinity.net/controls/user-settings/*
+// @require      https://code.jquery.com/jquery-latest.js
 // ==/UserScript==
 (function() {
     'use strict';
     var TemplateStyle=$('body').attr('data-static-path');
-    var YCHSHidden=0;var StreamsHidden=0;
-    console.log("Stream Setting: "+GM_getValue('stream_control')+ " ||| YCH Setting: "+GM_getValue('ych_control'));
-    // Add Special Stylesheet for keywords
+    // Setup keywords
+		var SubFilter_Keywords;
+	// Begin loading
+		function FASFM_Load(){
+			var sf_ud_keywords=GM_getValue('fasfm');
+			if(sf_ud_keywords>""){
+				SubFilter_Keywords=sf_ud_keywords.split(",");
+				$('#fafsm_settings').val(sf_ud_keywords.replace(/,/g,", "));
+			}
+			else {
+				console.log("Error occured while attempting to retrieve user keywords, ERR: KEYS_UNDEFINED");
+                //return "undefined";
+			}
+		}
+	  // Add Special Stylesheet for keywords
 		var JaysCSS=document.createElement('style');
 		var jayStyle=document.createTextNode(`
+			i.fafsm{
+				margin-right:5px;
+				padding:1px;
+			}
+			span.fafx-update-status{
+				font-weight:bold;
+				color:#04fd04;
+				float:right;
+				clear:right;
+				display:none;
+			}
 			#customfacontrolpanel{
+				/*border:1px dashed white;
+				background:rgba(1,0,0,0.1);
+				padding:5px;
+				border-radius:5px;*/
 				margin-top:20px;
 			}
 			.JaySB{
@@ -34,134 +61,57 @@
 		`);
 		JaysCSS.appendChild(jayStyle);
 		document.getElementsByTagName('body')[0].appendChild(JaysCSS);
-    // Adapt JQuery :contains to function without case restriction
-    jQuery.expr[':'].icontains=function(a, i, m){
-		return jQuery(a).text().toUpperCase().indexOf(m[3].toUpperCase()) >= 0;
-	};
-    // JS equiv of PHPs ucwords() for better presentation (Credit: rickycheers @ Github)
-    String.prototype.ucwords=function(){
-        strtouc=this.toLowerCase();
-        return strtouc.replace(/(^([a-zA-Z\p{M}]))|([ -][a-zA-Z\p{M}])/g,function(s){
-            return s.toUpperCase();
-        });
-    };
-    // Load Current Settings
-    function SF_LoadCP(i){
-        var setting_returned = GM_getValue(i);
-        if(setting_returned=="yes"){
-          if(i=="stream_control"){
-              $("select#streamid").val("yes");
-          }
-            else {
-                $("select#ychid").val("yes");
-            }
-        }
-        else if(setting_returned=="no") {
-             if(i=="stream_control"){
-              $("select#streamid").val("no");
-          }
-            else {
-                $("select#ychid").val("no");
-            }
-        }
-        else {
-             console.log('[DEBUG]: Setting: '+i+' Returned: '+setting_returned+' (Result not valid, or control not set)');
-             $("select#ychid").val("unset"); $("select#streamid").val("unset");
-        }
-    }
-    function SF_Load_Tweaks(i){
-        var setting_returned = GM_getValue(i);
-        if(setting_returned=="yes"){
-            return "yes";
-        }
-        else if(setting_returned=="no") {
-             return "no";
-        }
-        else {
-             return "undefined";
-        }
-    }
-    function SF_SaveSettings(ych,stream){
-        GM_setValue('ych_control',ych);GM_setValue('stream_control',stream);
-    }
-	function ExecuteTweak(tweak){
-		switch(tweak) {
-			case "noYCH":
-                //Browse Page
-                $("section figure figcaption").find("p:first a:icontains('ych')").parent().parent().parent().parent().css('display','none');
-                // Submission Inbox Page
-                $("#messagecenter-submissions section figure figcaption").find("label p:first a:icontains('ych')").parent().parent().parent().parent().css('display','none');
-                YCHSHidden=YCHSHidden+1;
-			break;
-			case "noSTREAM":
-                //Browse Page
-                $("section figure figcaption").find("p:first a:icontains('stream')").parent().parent().parent().parent().css('display','none');
-                // Submission Inbox Page
-                $("#messagecenter-submissions section figure figcaption").find("label p:first a:icontains('stream')").parent().parent().parent().parent().css('display','none');
-                StreamsHidden=StreamsHidden+1;
-			break;
-			default:
-			/* No Code */
-		}
+	// Save settings
+	function FAFSM_SaveSettings(fasfm){
+		GM_setValue('fasfm',fasfm);
 	}
-     var pathx = window.location.pathname;
-        if(~pathx.indexOf("/controls/user-settings/")){
-    // Update
-	$(document.body).on('click', '#sf_saveit', function() {
-		var sf_set_ych=$("select#ychid option:checked").val();var sf_set_stream=$("select#streamid option:checked").val();
-		SF_SaveSettings(sf_set_ych,sf_set_stream);
-		$('.sf-update-status_x').fadeIn('slow');
-			setTimeout(function(){
-				$('.sf-update-status_x').fadeOut('slow');
-			}, 5000);
-		});
-		if(TemplateStyle=="/themes/beta"){
-            $('.content .section-body').after(`
-		<div id="customfacontrolpanel" class="JaySB">
-			<h2>FA SubFilter <span class="sf-update-status_x" style="font-weight: bold; color: #02cc02; float:right; clear:right; display: none;">Update successful!</span></h2>
-			<br/>
-			<strong>YCH</strong>
-			<div class="control-panel-option">
-				<div class="control-panel-item-1">
-					<p>Enable/Disable the ability to see YCH submissions.</p>
-				</div>
-				<div class="control-panel-item-2">
-					<select id="ychid" style="width:300px;">
-					<option value="unset" disabled>--Select A Value--</option>
-					<option value="yes">Hide Submissions</option>
-					<option value="no">Show Submissions</option>
-					</select>
-				</div>
-			</div>
-			<strong>Stream</strong>
-			<div class="control-panel-option">
-				<div class="control-panel-item-1">
-						<p>Enable/Disable the ability to see Stream submissions.</p>
-				</div>
-				<div class="control-panel-item-2">
-					<select id="streamid" style="width:300px;">
-					<option value="unset" disabled>--Select A Value--</option>
-					<option value="yes">Hide Submissions</option>
-					<option value="no">Show Submissions</option>
-					</select>
-				</div>
-			</div>
-				<div class="button-nav">
-					<div class="button-nav-item">
-						<input class="button mobile-button" id="sf_saveit" type="button" value="Save SubFilter Settings*">
-					</div>
-				</div>
-						<br/><b>*Updates take effect from the next page load</b><br/><span style="font-size:10px;">SubFilter by <a href="https://www.furaffinity.net/user/feralfrenzy" style="border-bottom:1px dotted white;">JaysonHusky</a></span>
-		</div>
-	`);
-    }
-            else {
-               $('.footer').before(`<table cellpadding="0" cellspacing="1" border="0" class="section maintable" style="width: 60%; margin: 10px auto;">
+	// Load Control Panel
+		var pathx=window.location.pathname;
+		if(~pathx.indexOf("/controls/user-settings/")){
+			// Update
+			$(document.body).on('click','#fafsm_saveit',function(){
+				var fafsm_set=$("input[name='fafsm_setting']").val().replace(/ /g,"").replace(/  /g,"");
+				FAFSM_SaveSettings(fafsm_set);
+				$('.fafx-update-status').fadeIn('slow');
+					setTimeout(function(){
+						$('.fafx-update-status').fadeOut('slow');
+					}, 5000);
+				});
+				if(TemplateStyle=="/themes/beta"){
+				$('.content .section-body').after(`
+					<div id="customfacontrolpanel" class="JaySB">
+						<h2>SubFilter Control Panel <span class="fafx-update-status">Update successful!</span></h2>
+						<br/>
+						<h4>Custom Keywords to blacklist in submissions inbox</h4>
+						<div class="control-panel-option">
+							<div class="control-panel-item-1">
+								<p>
+								<ul id="speciallisting">
+								<li>Keywords must be comma seperated.</li>
+								<li>Case insensitive</li>
+								<li>Singular terms will match plurals.</li>
+								</ul>
+								</p>
+							</div>
+							<div class="control-panel-item-2">
+								<input type="text" name="fafsm_setting" id="fafsm_settings" class="textbox" placeholder="Example: free,fender,commission" style="height:36px;padding:5px; width:300px" />
+							</div>
+						</div>
+						<div class="button-nav">
+							<div class="button-nav-item">
+								<input class="button mobile-button" id="fafsm_saveit" type="button" value="Save SubFilter Settings*">
+							</div>
+						</div>
+						<br/><b>*Updates take effect from the next page load.</b><br/><span style="font-size:10px;position:relative;bottom:0;right:0;">SubFilter (A user controlled FA Blacklisting tool) by <a href="https://www.furaffinity.net/user/feralfrenzy" style="border-bottom:1px dotted white;">JaysonHusky</a></span>
+					</div><br/><br/>`);
+				}
+				else {
+					$('.footer').before(`<table cellpadding="0" cellspacing="1" border="0" class="section maintable" style="width: 60%; margin: 0 auto;">
 					<tbody>
 						<tr>
 							<td height="22" class="cat links">&nbsp;
-								<strong>SubFilter</strong>
-								<span class="sf-update-status_x" style="font-weight: bold; color: #02cc02; float:right; clear:right; display: none;">Update successful!</span>
+								<strong>SubFilter - Control Panel</strong>
+								<span class="fafx-update-status">Update successful!</span>
 							</td>
 						</tr>
 						<tr>
@@ -169,45 +119,48 @@
 								<table cellpadding="0" cellspacing="1" border="0">
 									<tbody>
 										<tr>
-											<th><strong>YCH/Stream</strong></th>
+											<th><strong>Custom Keywords to bblock in submissions inbox</strong></th>
 											<td>
-												<label>YCH:</label>
-												<select id="ychid" style="width:300px;">
-													<option value="unset" disabled>--Select A Value--</option>
-													<option value="yes">Hide Submissions</option>
-													<option value="no">Show Submissions</option>
-												</select>
-												<br/>
-												<label>Stream:</label>
-												<select id="streamid" style="width:300px;">
-													<option value="unset" disabled>--Select A Value--</option>
-													<option value="yes">Hide Submissions</option>
-													<option value="no">Show Submissions</option>
-												</select>
+												<input type="text" name="fafsm_setting" id="fafsm_settings" class="textbox" placeholder="Example: free,fender,commission" style="padding:5px; width:250px" />
 											</td>
 											<td class="option-description">
-												Enable/Disable the ability to see YCH submissions.
+												<p>Enter keywords here for the addon to identify in journal titles. <br/>Keywords must be comma seperated.<br/>Case insensitive<br/>Singular terms will match plurals.</p>
 											</td>
-										</tr>
 										</tr>
 										<th class="noborder">&nbsp;</th>
 										<td class="noborder">&nbsp;</td>
 										<td class="option-description noborder">
-											<br><input class="button mobile-button" id="sf_saveit" type="button" value="Save SubFilter Settings*"><br/>
+											<br><input class="button mobile-button" id="fafsm_saveit" type="button" value="Save Settings*"><br/>
 											<span style="font-size:10px;">FA Journal Breakdown by <a href="https://www.furaffinity.net/user/feralfrenzy" style="border-bottom:1px dotted white;">JaysonHusky</a></span><br/><br/>
 											<b>*Updates take effect from the next page load</b>
 										</td>
 									</tr>
 								</tbody>
 							</table>`);
-            }
+				}
         }
-    // Load the users settings
-    $.each(["ych_control","stream_control"],function(i,l){
-        SF_LoadCP(l);
+		FASFM_Load();
+    // Setup the hook
+    // Adapt JQuery :contains to function without case restriction
+    jQuery.expr[':'].icontains=function(a,i,m){return jQuery(a).text().toUpperCase().indexOf(m[3].toUpperCase())>=0;};
+    // JS equiv of PHPs ucwords() for better presentation (Credit: rickycheers @ Github)
+    String.prototype.ucwords=function(){
+        st2uc=this.toLowerCase();
+        return st2uc.replace(/(^([a-zA-Z\p{M}]))|([ -][a-zA-Z\p{M}])/g,function(s){
+            return s.toUpperCase();
+        });
+    };
+    function subcount(inp){if(isNaN(inp)===true){return "0";}else{return inp;}}
+    // Search for custom keywords
+        SubFilter_Keywords.forEach(function(keyword){
+		    // Message Center ( Submissions Only )
+            $("#messagecenter-submissions section figure figcaption").find("label p:first a:icontains('"+keyword+"')").parent().parent().parent().parent().css('display','none');
+			// User Profile Gallery
+            $("#gallery-gallery figure figcaption").find("p:first a:icontains('"+keyword+"')").parent().parent().parent().css('display','none');
+            // User Profile Favourites
+            $("#gallery-favorites figure figcaption").find("p:first a:icontains('"+keyword+"')").parent().parent().parent().css('display','none');
+            // Browse Page
+            $("#gallery-browse figure figcaption").find("p:first a:icontains('"+keyword+"')").parent().parent().parent().css('display','none');
+            // Deactivate on Search page as the user can filter by themselves there.
     });
-    // Check and Run the Tweaks if required
-    if(SF_Load_Tweaks('ych_control')=="yes"){ExecuteTweak('noYCH');}else{/* Do Nothing */}
-    if(SF_Load_Tweaks('stream_control')=="yes"){ExecuteTweak('noSTREAM');}else{/* Do Nothing */}
-    console.log("YCH's Hidden: "+YCHSHidden);console.log("Streams Hidden: "+StreamsHidden);
 })();

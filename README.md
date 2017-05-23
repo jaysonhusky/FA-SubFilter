@@ -11,5 +11,9 @@ A simple userscript addition to allow the user to enable/disable the viewing of 
 
 
 ## Changelog
+
+<b>2.0</b> (2017-05-24)<br>
+- Enables custom user keyword input, and activates on Browse/Gallery/Favorites and Submissions Inbox pages.
+
 <b>1.0.0</b> (2017-05-19)<br>
 - Initial commit.
